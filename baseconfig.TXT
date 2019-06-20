@@ -1,0 +1,1312 @@
+hostname <HOSTNAME>
+clock timezone EST 10
+clock summer-time ESDT recurring first sunday october 02:00 first sunday april 02:00
+**************************************************************
+* Provider Edge router (Cisco ASR-9K)                        *
+** TmplVer:5.0_AAPRx SoftVer:XR6.1.4                         *
+**************************************************************
+^
+banner login ^
+***********************************************************************
+* Access to this computer system is limited to authorised users only. *
+* Unauthorised users may be subject to prosecution under the Crimes   *
+*                       Act or State legislation                      *
+*                                                                     *
+*   Please note, ALL CUSTOMER DETAILS are confidential and must       *
+*                          not be disclosed.                          *
+***********************************************************************
+Contact:- IP Networks 1300652235
+^
+logging on
+logging trap informational
+logging archive
+ device harddisk
+ severity informational
+ file-size 5
+ frequency daily
+ archive-size 300
+ archive-length 4
+!
+logging console disable
+logging buffered 4096000
+logging buffered debugging
+logging facility local7
+logging 10.74.65.148 vrf default severity info
+logging 144.133.188.237 vrf default severity info
+logging 144.133.188.195 vrf default severity info
+service timestamps log datetime localtime msec show-timezone
+service timestamps debug datetime localtime msec show-timezone
+domain name sep.rdn.telstra.com.au
+domain name-server 144.133.188.238
+domain name-server 144.133.188.239
+tacacs-server host 144.133.189.156 port 49
+ key 0 <TACACS_Key_Value>
+!
+tacacs-server timeout 3
+username <root_username>
+ group root-system
+ secret 0 <root_user_password>
+!
+username <support_username>
+ group cisco-support
+ secret 0 <support_user_password>
+!
+aaa accounting exec default start-stop group WIP_TACACS
+aaa accounting system default start-stop group WIP_TACACS
+aaa accounting commands default start-stop group WIP_TACACS
+aaa group server tacacs+ WIP_TACACS
+ server 144.133.189.156
+
+!
+aaa authorization exec default group WIP_TACACS local
+aaa authorization commands default group WIP_TACACS none
+aaa authentication login default group WIP_TACACS local
+cdp
+!
+! Primary P-router LSP path
+explicit-path name <ASR9K-HOSTNAME>_<CRS/NCS-HOSTNAME>
+ index 10 next-address strict ipv4 unicast <Directly_Connected_CRS/NCS_interface_IPv4_address>
+!
+! Primary Peer-9K LSP path
+explicit-path name <ASR9K-HOSTNAME>_<PEER-ASR9K-HOSTNAME>
+ index 10 next-address strict ipv4 unicast <Directly_Connected_ASR9K_interface_IPv4_address>
+!
+! Link Protection P-router Bypass path
+explicit-path name <ASR9K-HOSTNAME>_<CRS/NCS-HOSTNAME>_BYPASS
+ index 10 exclude-address ipv4 unicast <Directly_Connected_CRS/NCS_interface_IPv4_address>
+!
+! Link Protection Peer-9K Bypass path
+explicit-path name <ASR9K-HOSTNAME>_<PEER-ASR9K-HOSTNAME>_BYPASS
+ index 10 exclude-address ipv4 unicast <Directly_Connected_ASR9K_interface_IPv4_address>
+!
+!
+line console
+ secret 0 <password>
+ users group root-system
+ exec-timeout 30 0
+!
+line default
+ authorization exec default
+ authorization commands default
+ login authentication default
+ exec-timeout 30 0
+!
+vty-pool default 0 15
+lpts pifib hardware police
+ flow fragment rate 500
+ flow ospf multicast default rate 0
+ flow ospf unicast default rate 0
+ flow ldp tcp default rate 0
+ flow msdp default rate 0
+ flow udp default rate 100
+ flow raw default rate 0
+!
+snmp-server ifindex persist
+snmp-server ifmib stats cache
+snmp-server mibs cbqosmib persist
+snmp-server engineID local <engine-id>
+snmp-server group OSS v3 priv read READ notify READ
+snmp-server view READ iso included
+snmp-server user BMC OSS v3 auth sha clear d5sWademE&ra priv aes 128 clear wrUjacHu2!je
+snmp-server user Infovista OSS v3 auth sha clear SepNgiv1 priv aes 128 clear SepNgiv1
+
+snmp-server user IPDAM OSS v3 auth sha clear SepNgdam1 priv aes 128 clear SepNgdam1
+snmp-server user CSPC OSS v3 auth sha clear c!70C$p@asvE priv aes 128 clear c!70C$p@asvE systemOwner
+snmp-server host 144.133.188.220 version 3 priv IPDAM udp-port 6162
+snmp-server host 144.133.188.249 version 3 priv IPDAM udp-port 6162
+snmp-server user RDNBOSS OSS v3 auth sha clear SepNgrdn1 priv aes 128 clear SepNgrdn1
+snmp-server user SYSOWN OSS v3 auth sha clear SepNgsysown1 priv aes 128 clear SepNgsysown1 systemOwner
+snmp-server host 144.133.188.238 version 3 priv RDNBOSS udp-port 162
+snmp-server host 144.133.188.239 version 3 priv RDNBOSS udp-port 162
+snmp-server queue-length 1000
+snmp-server traps rf
+snmp-server traps ntp
+snmp-server traps ethernet oam events
+snmp-server traps snmp linkup
+snmp-server traps snmp linkdown
+snmp-server traps snmp coldstart
+snmp-server traps snmp warmstart
+snmp-server traps snmp authentication
+snmp-server traps entity
+snmp-server traps syslog
+snmp-server traps ospf lsa lsa-maxage
+snmp-server traps ospf lsa lsa-originate
+snmp-server traps ospf errors bad-packet
+snmp-server traps ospf errors authentication-failure
+snmp-server traps ospf errors config-error
+snmp-server traps ospf errors virt-bad-packet
+snmp-server traps ospf errors virt-authentication-failure
+snmp-server traps ospf errors virt-config-error
+snmp-server traps ospf retransmit packets
+snmp-server traps ospf retransmit virt-packets
+snmp-server traps ospf state-change if-state-change
+snmp-server traps ospf state-change neighbor-state-change
+snmp-server traps ospf state-change virtif-state-change
+snmp-server traps ospf state-change virtneighbor-state-change
+snmp-server traps entity-redundancy all
+snmp-server location <snmp-server-location>
+redundancy
+ iccp
+  group 1
+   mlacp node 1
+   mlacp system mac 0001.0000.0001
+   ! we will control the LACP failover
+   mlacp system priority 1
+   member
+    neighbor <Remote_PEER-ASR9K_Loopback0_IPv4_address>
+   !
+   backbone
+    interface Bundle-Ether1
+    interface Bundle-Ether10
+   !
+   nv satellite
+    system-mac 0000.0000.0001
+   !
+  !
+  group 2
+   mlacp node 1
+   mlacp system mac 0001.0000.0002
+   ! we will control the LACP failover
+   mlacp system priority 1
+   member
+    neighbor <Remote_PEER-ASR9K_Loopback0_IPv4_address>
+   !
+   backbone
+    interface Bundle-Ether1
+    interface Bundle-Ether10
+   !
+  !
+ !
+!
+ntp
+ server 144.133.188.238
+ server 144.133.188.239
+ access-group ipv4 serve-only NTP_PERMIT
+
+ update-calendar
+!
+! Link OAM profile for NTU and AS
+ethernet oam profile Evo_NTU_OAM_Profile
+ action
+  remote-loopback disable
+ !
+!
+! Link OAM profile for AAG
+ethernet oam profile aag_link_oam_profile
+ connection timeout 3
+ hello-interval 100ms
+ action
+  session-down efd
+ !
+!
+! Link OAM profile for FAE
+ethernet oam profile fae_link_oam_profile
+ connection timeout 3
+ hello-interval 100ms
+ action
+  session-down efd
+ !
+!
+! Link OAM profile for FAE and AAG
+ethernet oam profile fae_AAG_link_oam_profile
+ connection timeout 3
+ hello-interval 100ms
+ action
+  session-down efd
+ !
+!
+ !
+!
+control-plane
+ management-plane
+  out-of-band
+   interface MgmtEth0/RSP0/CPU0/0
+    allow SSH peer
+     address ipv4 10.33.65.0/25
+     address ipv4 10.34.130.128/25
+     address ipv4 10.74.68.64/26
+     address ipv4 10.74.196.64/26
+     address ipv4 10.98.192.0/20
+     address ipv4 10.105.192.0/20
+     address ipv4 10.119.192.0/20
+     address ipv4 144.133.188.192/26
+     address ipv4 144.133.189.128/25
+     address ipv4 10.60.182.80
+     address ipv4 10.60.182.81
+     address ipv4 10.60.182.82
+     address ipv4 10.194.252.0/26
+    !
+    allow SNMP peer
+     address ipv4 10.98.192.0/20
+     address ipv4 10.105.192.0/20
+     address ipv4 10.119.192.0/20
+     address ipv4 144.133.188.192/26
+     address ipv4 10.74.80.128/30
+     address ipv4 144.133.189.128/25
+    !
+   !
+   interface MgmtEth0/RSP1/CPU0/0
+    allow SSH peer
+     address ipv4 10.33.65.0/25
+     address ipv4 10.34.130.128/25
+     address ipv4 10.74.68.64/26
+     address ipv4 10.74.196.64/26
+     address ipv4 10.98.192.0/20
+     address ipv4 10.105.192.0/20
+     address ipv4 10.119.192.0/20
+     address ipv4 144.133.188.192/26
+     address ipv4 144.133.189.128/25
+     address ipv4 10.60.182.80
+     address ipv4 10.60.182.81
+     address ipv4 10.60.182.82
+     address ipv4 10.194.252.0/26
+    !
+    allow SNMP peer
+     address ipv4 10.98.192.0/20
+     address ipv4 10.105.192.0/20
+     address ipv4 10.119.192.0/20
+     address ipv4 144.133.188.192/26
+     address ipv4 10.74.80.128/30
+     address ipv4 144.133.189.128/25
+    !
+   !
+  !
+ !
+!
+ipv4 virtual address <virtual_IPv4_address> <virtual_IPv4_subnet>
+ipv4 virtual address use-as-src-addr
+!
+ethernet-services access-list MAC_FILTER_WIP_UNI
+ 10 deny any host 0180.c200.0000
+ 20 deny any host 0100.0ccc.cccc
+ 30 deny any host 0180.c200.0002
+ 40 deny any host 0180.c200.0003
+ 50 deny any host 0180.c200.0007
+ 60 deny any host 0180.c200.000e
+ 100 permit any any
+!
+ethernet-services access-list MAC_FILTER_WIP_UNIBS_MGMT
+ 10 deny 0000.5e00.0101 0000.0000.00ff any
+ 20 deny any host 0100.0ccc.cccc
+ 30 deny any host 0180.c200.0000
+ 40 deny any host 0180.c200.0002
+ 50 deny any host 0180.c200.0003
+ 60 deny any host 0180.c200.0007
+ 70 deny any host 0180.c200.000e
+ 80 deny any any 88cc
+ 90 deny any any 888e
+ 100 deny any any 8902
+ 200 permit any any
+!
+ethernet-services access-list MAC_FILTER
+ 10 deny 0000.5e00.0101 0000.0000.00ff any
+ 11 deny b0c6.9a00.0000 0000.00ff.ffff any
+ 20 permit any any
+!
+ethernet-services access-list MAC_FILTER_MBH
+ 10 deny 0000.0c07.ac00 0000.0000.00ff any
+ 11 deny 0000.0c9f.f000 0000.0000.0fff any
+ 12 deny 0000.5e00.0100 0000.0000.00ff any
+ 20 permit any any
+!
+ethernet-services access-list PVST_BPDU_ACL
+ 10 deny any host 0100.0ccc.cccd   
+ 20 permit any any
+!
+ethernet-services access-list MAC_FILTER_WIP
+ 10 deny any host 0100.0ccc.cccd
+ 20 deny any host 0180.c200.0000
+ 30 deny any host 0100.0ccc.cccc
+ 40 deny any host 0180.c200.0002
+ 50 deny any host 0180.c200.0003
+ 60 deny any host 0180.c200.0007
+ 70 deny any host 0180.c200.000e
+ 100 permit any any
+!
+ethernet-services access-list MAC_FILTER_WIP_MGMT
+ 10 deny any host 0100.0ccc.cccd
+ 20 deny any host 0180.c200.0000
+ 30 deny any host 0100.0ccc.cccc
+ 40 deny any host 0180.c200.0002
+ 50 deny any host 0180.c200.0003
+ 60 deny any host 0180.c200.0007
+ 70 deny any host 0180.c200.000e
+ 100 permit any any
+!
+ethernet-services access-list MAC_FILTER_WIP_SNTU
+ 10 deny any host 0100.0ccc.cccd
+ 20 deny any host 0180.c200.0000
+ 30 deny any host 0100.0ccc.cccc
+ 40 deny any host 0180.c200.0002
+ 50 deny any host 0180.c200.0003
+ 60 deny any host 0180.c200.0007
+ 70 deny any host 0180.c200.000e
+ 100 permit any any
+!
+ethernet-services access-list MAC_FILTER_WIP_UNTU
+ 10 deny any host 0100.0ccc.cccd
+ 20 deny any host 0180.c200.0000
+ 30 deny any host 0100.0ccc.cccc
+ 40 deny any host 0180.c200.0002
+ 50 deny any host 0180.c200.0003
+ 60 deny any host 0180.c200.0007
+ 70 deny any host 0180.c200.000e
+ 100 permit any any
+!
+ipv4 access-list MGMT_1
+ ! RDNBoss, RDN syslog Server and Netcool
+ 10 permit ipv4 144.133.188.192 0.0.0.63 any
+ ! Tacacs server
+ 20 permit ipv4 144.133.189.128 0.0.0.127 any
+ ! IV Server
+ 30 permit ipv4 10.98.192.0 0.0.15.255 any
+ 40 permit ipv4 10.105.192.0 0.0.15.255 any
+ 50 permit ipv4 10.119.192.0 0.0.15.255 any
+!BMC server Cluster
+ 60 permit ipv4 10.74.80.128 0.0.0.3 any
+!
+ipv4 access-list bfd_echo
+ 10 permit udp any any eq 3785
+!
+ipv4 access-list LDP_GR_ALU
+ 10 permit ipv4 144.133.143.0/24 any
+ 20 permit ipv4 144.133.159.0/24 any
+ 30 permit ipv4 144.133.166.0/24 any
+ 40 permit ipv4 144.133.174.0/24 any
+ 50 permit ipv4 144.133.182.0/24 any
+
+!
+ipv4 access-list LDP_PERMIT
+ 10 permit ipv4 any any
+!
+ipv4 access-list NTP_PERMIT
+ ! NTP RDNBOSS Server
+ 10 permit ipv4 host 144.133.188.239 any
+ 20 permit ipv4 host 144.133.188.238 any
+ 30 deny ipv4 any any
+!
+ipv4 access-list LDP_ALLOW_ALL
+ 10 permit ipv4 host <Remote_CRS_Loopback0_IPv4_address> any
+ 20 permit ipv4 host <Remote_PEER-ASR9K_Loopback0_IPv4_address> any
+!
+ipv4 access-list IPv4_ICMP_G6T
+ 10 permit icmp any any
+!
+class-map match-any CM_BBH_Premium
+ match cos 3
+ end-class-map
+!
+class-map match-any CM_EVO_Discard
+ match cos 6 7
+ end-class-map
+!
+class-map match-any CM_BBH_Standard
+ match cos 0 1 2 6 7
+ end-class-map
+!
+class-map match-any CM_BBH_Expedited
+ match cos 5
+ end-class-map
+!
+class-map match-any CM_EVO_Expedited
+ match cos 5
+ end-class-map
+!
+class-map match-any CM_MBH_Expedited
+ match cos 5
+ end-class-map
+!
+class-map match-any CM_RDN_Expedited
+ match mpls experimental topmost 5
+ match dscp ef cs5
+ end-class-map
+!
+class-map match-any CM_SEP_Expedited
+ match qos-group 5
+ end-class-map
+!
+class-map match-any CM_BBH_Guaranteed
+ match cos 4
+ end-class-map
+!
+class-map match-any CM_EVO_Guaranteed
+ match cos 4
+ end-class-map
+!
+class-map match-any CM_EVO_Premium_Hi
+ match cos 3
+ end-class-map
+!
+class-map match-any CM_EVO_Premium_Lo
+ match cos 2
+ end-class-map
+!
+class-map match-any CM_MBH_Guaranteed
+ match cos 4
+ end-class-map
+!
+class-map match-any CM_MBH_Premium_Hi
+ match cos 3
+ end-class-map
+!
+class-map match-any CM_RDN_Guaranteed
+ match mpls experimental topmost 4
+ match dscp cs4 af41
+ end-class-map
+!
+class-map match-any CM_SEP_Guaranteed
+ match qos-group 4
+ end-class-map
+!
+class-map match-any CM_EVO_Standard_Hi
+ match cos 1
+ end-class-map
+!
+class-map match-any CM_EVO_Standard_Lo
+ match cos 0
+ end-class-map
+!
+class-map match-any CM_MBH_Standard_Hi
+ match cos 1
+ end-class-map
+!
+class-map match-any CM_MBH_Standard_Lo
+ match cos 0 2 6 7
+ end-class-map
+!
+class-map match-any CM_RDN_Premium_Low
+ match mpls experimental topmost 2
+ match dscp cs2 af21
+ end-class-map
+!
+class-map match-any CM_SEP_Premium_Low
+ match qos-group 2
+ end-class-map
+!
+class-map match-any CM_RDN_Premium_High
+ match mpls experimental topmost 3
+ match dscp cs3 af31
+ end-class-map
+!
+class-map match-any CM_RDN_Standard_Low
+ match mpls experimental topmost 0
+ match dscp 0
+ end-class-map
+!
+class-map match-any CM_SEP_Premium_High
+ match qos-group 3
+ end-class-map
+!
+class-map match-any CM_SEP_Standard_Low
+ match qos-group 0
+ end-class-map
+!
+class-map match-any CM_RDN_NC_Guaranteed
+ match mpls experimental topmost 6 7
+ match dscp cs6 cs7
+ match access-group ipv4 bfd_echo
+ end-class-map
+!
+class-map match-any CM_RDN_Standard_High
+ match mpls experimental topmost 1
+ match dscp af11 cs1
+ end-class-map
+!
+class-map match-any CM_SEP_NC_Guaranteed
+ match access-group ipv4 bfd_echo
+ match qos-group 6
+ end-class-map
+!
+class-map match-any CM_SEP_Standard_High
+ match qos-group 1
+ end-class-map
+!
+class-map match-any CM_G6T_ICMP_Standard
+ match access-group ipv4 IPv4_ICMP_G6T
+ end-class-map
+!
+policy-map PM_RDN_Egress
+ class CM_SEP_NC_Guaranteed
+  set mpls experimental topmost 6
+  priority level 1
+  police rate percent 5
+   conform-action transmit
+   exceed-action drop
+  !
+ !
+ class CM_SEP_Expedited
+  set mpls experimental topmost 5
+  priority level 1
+  police rate percent 35
+   conform-action transmit
+   exceed-action drop
+  !
+ !
+ class CM_SEP_Guaranteed
+  set mpls experimental topmost 4
+  priority level 2
+  police rate percent 35
+   conform-action transmit
+   exceed-action drop
+  !
+ !
+ class CM_SEP_Premium_High
+  set mpls experimental topmost 3
+  bandwidth remaining percent 42
+  random-detect exp 3 50 ms 100 ms
+ !
+ class CM_SEP_Premium_Low
+  set mpls experimental topmost 2
+  bandwidth remaining percent 33
+  random-detect exp 2 40 ms 90 ms
+ !
+ class CM_SEP_Standard_High
+  set mpls experimental topmost 1
+  bandwidth remaining percent 16
+  random-detect exp 1 30 ms 80 ms
+ !
+ class CM_SEP_Standard_Low
+  set mpls experimental topmost 0
+  bandwidth remaining percent 9
+  random-detect exp 0 20 ms 70 ms
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_RDN_Ingress
+ class CM_RDN_NC_Guaranteed
+  set qos-group 6
+  priority level 1
+ !
+ class CM_RDN_Expedited
+  set qos-group 5
+  priority level 1
+ !
+ class CM_RDN_Guaranteed
+  set qos-group 4
+  priority level 2
+ !
+ class CM_RDN_Premium_High
+  set qos-group 3
+ !
+ class CM_RDN_Premium_Low
+  set qos-group 2
+ !
+ class CM_RDN_Standard_High
+  set qos-group 1
+ !
+ class CM_RDN_Standard_Low
+  set qos-group 0
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_BBH_COS_Egress
+ class CM_SEP_Expedited
+  priority level 1
+  police rate 47 mbps
+  !
+ !
+ class CM_SEP_Guaranteed
+  priority level 2
+ !
+ class CM_SEP_Premium_High
+  bandwidth remaining percent 44
+  random-detect default
+ !
+ class CM_SEP_Premium_Low
+  bandwidth remaining percent 32
+  random-detect default
+ !
+ class CM_SEP_Standard_High
+  bandwidth remaining percent 16
+  random-detect default
+ !
+ class CM_SEP_Standard_Low
+  bandwidth remaining percent 8
+  random-detect default
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_EVO_COS_Egress
+ class CM_SEP_Expedited
+  priority level 1
+ !
+ class CM_SEP_Guaranteed
+  priority level 2
+ !
+ class CM_SEP_Premium_High
+  bandwidth remaining percent 44
+  random-detect default
+ !
+ class CM_SEP_Premium_Low
+  bandwidth remaining percent 32
+  random-detect default
+ !
+ class CM_SEP_Standard_High
+  bandwidth remaining percent 16
+  random-detect default
+ !
+ class CM_SEP_Standard_Low
+  bandwidth remaining percent 8
+  random-detect default
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_MBH_DVS_Egress
+ class CM_SEP_Expedited
+  priority level 1
+  police rate percent 100
+  queue-limit 10 ms 
+ !
+ class CM_SEP_Guaranteed
+  priority level 2
+  queue-limit 40 ms 
+ !
+ class CM_SEP_Premium_High
+  bandwidth remaining percent 50
+  random-detect default
+  queue-limit 3000 ms 
+ !
+ class CM_SEP_Standard_High
+  bandwidth remaining percent 30
+  random-detect default
+  queue-limit 3000 ms 
+ !
+ class CM_SEP_Standard_Low
+  bandwidth remaining percent 20
+  random-detect default
+  queue-limit 3000 ms 
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_MBH_OAM_Egress
+ class class-default
+  bandwidth remaining percent 30
+  random-detect default
+ !
+ end-policy-map
+!
+policy-map PM_MBH_100M_Egress
+ class class-default
+  shape average 1000 mbps 15000 bytes
+ !
+ end-policy-map
+!
+policy-map PM_MBH_130M_Egress
+ class class-default
+  shape average 1000 mbps 15000 bytes
+ !
+ end-policy-map
+!
+policy-map PM_MBH_200M_Egress
+ class class-default
+  shape average 1000 mbps 15000 bytes
+ !
+ end-policy-map
+!
+policy-map PM_MBH_250M_Egress
+ class class-default
+  shape average 1000 mbps 15000 bytes
+ !
+ end-policy-map
+!
+policy-map PM_MBH_500M_Egress
+ class class-default
+  shape average 1000 mbps 15000 bytes
+ !
+ end-policy-map
+!
+policy-map PM_MBH_1000M_Egress
+ class class-default
+  shape average 1000 mbps 15000 bytes
+ !
+ end-policy-map
+!
+policy-map PM_MBH_2000M_Egress
+ class class-default
+  shape average 2000 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_4000M_Egress
+ class class-default
+  shape average 4000 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_6000M_Egress
+ class class-default
+  shape average 6000 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_10000M_Egress
+ class class-default
+  shape average 10000 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_10M_OAM_Egress
+ class class-default
+  shape average 10 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_100M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 90 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_130M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 120 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_200M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 190 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_250M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 240 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_500M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 490 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_1000M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 990 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_2000M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 1990 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_4000M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 3990 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_6000M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 5990 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_10000M_DVSM1_Egress
+ class class-default
+  service-policy PM_MBH_DVS_Egress
+  shape average 9990 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_1VC3_Egress
+ class class-default
+  shape average 47 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_1VC4_Egress
+ class class-default
+  shape average 145 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_2VC3_Egress
+ class class-default
+  shape average 94 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_2VC4_Egress
+ class class-default
+  shape average 290 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_3VC3_Egress
+ class class-default
+  shape average 141 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_3VC4_Egress
+ class class-default
+  shape average 435 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_4VC3_Egress
+ class class-default
+  shape average 188 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_4VC4_Egress
+ class class-default
+  shape average 580 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_5VC3_Egress
+ class class-default
+  shape average 235 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_5VC4_Egress
+ class class-default
+  shape average 725 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_6VC3_Egress
+ class class-default
+  shape average 282 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_6VC4_Egress
+ class class-default
+  shape average 870 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_7VC3_Egress
+ class class-default
+  shape average 329 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_7VC4_Egress
+ class class-default
+  shape average 1 gbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_8VC3_Egress
+ class class-default
+  shape average 376 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_9VC3_Egress
+ class class-default
+  shape average 423 mbps
+ !
+ end-policy-map
+!
+policy-map PM_BBH_COS_Ingress
+ class CM_BBH_Expedited
+  set qos-group 5
+  set mpls experimental imposition 5
+  priority level 1
+  police rate 47 mbps
+  !
+ !
+ class CM_BBH_Guaranteed
+  set qos-group 4
+  set mpls experimental imposition 4
+  priority level 2
+  police rate 450 mbps
+  !
+ !
+ class CM_BBH_Premium
+  set qos-group 2
+  set mpls experimental imposition 2
+  police rate 450 mbps
+  !
+ !
+ class CM_BBH_Standard
+  set qos-group 0
+  set mpls experimental imposition 0
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_EVO_100M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 100 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_200M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 200 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_300M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 300 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_400M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 400 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_500M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 500 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_600M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 600 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_700M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 700 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_800M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 800 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_900M_Egress
+ class class-default
+  service-policy PM_EVO_COS_Egress
+  shape average 900 mbps
+ !
+ end-policy-map
+!
+policy-map PM_EVO_COS_Ingress
+ class CM_EVO_Expedited
+  set qos-group 5
+  set mpls experimental imposition 5
+  priority level 1
+ !
+ class CM_EVO_Guaranteed
+  set qos-group 4
+  set mpls experimental imposition 4
+  priority level 2
+ !
+ class CM_EVO_Premium_Hi
+  set qos-group 3
+  set mpls experimental imposition 3
+ !
+ class CM_EVO_Premium_Lo
+  set qos-group 2
+  set mpls experimental imposition 2
+ !
+ class CM_EVO_Standard_Hi
+  set qos-group 1
+  set mpls experimental imposition 1
+ !
+ class CM_EVO_Standard_Lo
+  set qos-group 0
+  set mpls experimental imposition 0
+ !
+ class CM_EVO_Discard
+  police rate 64 kbps
+   conform-action drop
+  !
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_EVO_MGMT_Egress
+ class class-default
+  priority level 2
+  shape average 1000 mbps
+ !
+ end-policy-map
+!
+policy-map PM_MBH_DVS_Ingress
+ class CM_MBH_Expedited
+  set qos-group 5
+  set mpls experimental imposition 5
+  priority level 1
+ !
+ class CM_MBH_Guaranteed
+  set qos-group 4
+  set mpls experimental imposition 4
+  priority level 2
+ !
+ class CM_MBH_Premium_Hi
+  set qos-group 3
+  set mpls experimental imposition 3
+ !
+ class CM_MBH_Standard_Hi
+  set qos-group 1
+  set mpls experimental imposition 1
+ !
+ class CM_MBH_Standard_Lo
+  set qos-group 0
+  set mpls experimental imposition 0
+ !
+ class class-default
+ !
+ end-policy-map
+!
+policy-map PM_MBH_OAM_Ingress
+ class class-default
+  set qos-group 1
+  set mpls experimental imposition 1
+ !
+ end-policy-map
+!
+policy-map PM_MBH_3M_M1_Ingress
+ class class-default
+  set qos-group 4
+  set mpls experimental imposition 4
+  priority level 2
+  police rate 3 mbps
+  !
+ !
+ end-policy-map
+!
+policy-map PM_MBH_10M_OAM_Ingress
+ class class-default
+  set qos-group 1
+  set mpls experimental imposition 1
+  police rate 10 mbps
+  !
+ !
+ end-policy-map
+!
+policy-map PM_WIP_1VC3_Egress
+ class class-default
+  shape average 47 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_1VC4_Egress
+ class class-default
+  shape average 145 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_2VC3_Egress
+ class class-default
+  shape average 94 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_2VC4_Egress
+ class class-default
+  shape average 290 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_3VC3_Egress
+ class class-default
+  shape average 141 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_3VC4_Egress
+ class class-default
+  shape average 435 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_4VC3_Egress
+ class class-default
+  shape average 188 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_4VC4_Egress
+ class class-default
+  shape average 580 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_5VC3_Egress
+ class class-default
+  shape average 235 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_5VC4_Egress
+ class class-default
+  shape average 725 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_6VC3_Egress
+ class class-default
+  shape average 282 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_6VC4_Egress
+ class class-default
+  shape average 870 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_7VC3_Egress
+ class class-default
+  shape average 329 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_7VC4_Egress
+ class class-default
+  shape average 1 gbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_8VC3_Egress
+ class class-default
+  shape average 376 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_9VC3_Egress
+ class class-default
+  shape average 423 mbps
+ !
+ end-policy-map
+!
+policy-map PM_WIP_1VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_2VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_3VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_4VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_5VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_6VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_7VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_8VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_9VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_10VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_11VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_12VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_13VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_14VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_15VC12_Egress
+ class class-default
+  shape average 47 mbps 
+ !
+ end-policy-map
+!
+policy-map PM_WIP_16VC12_Egress
+ class class-default
+  shape average 47 mbps 
+
+
+policy-map PM_WIP_16VC12_Egress
+ class class-default
+  shape average 56 mbps 
+
